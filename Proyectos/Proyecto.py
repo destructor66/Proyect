@@ -1,46 +1,54 @@
 
 import sys
+from pathlib import Path
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QWidget
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QWidget, QStatusBar, QAction, QMessageBox, QLineEdit,  QPlainTextEdit, QFormLayout, QFileDialog, QFontDialog
+from PyQt5.QtGui import QIcon
+
+def absPath(nombre):
+    return str( Path(__file__).parent.absolute()/ nombre)
+
 
 class Ventana(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
+        self.resize(600, 400)
+        
+        self.construir_menu()
+        
+        self.boton = QPushButton("Bienvenido a Barbuq")
+        self.setCentralWidget(self.boton)
+        self.boton.clicked.connect(self.abrir)
 
-        self.setWindowTitle("Hola mundo")
-        self.resize(580,400)
-        self.setMaximumSize(600,400)
-        self.setMinimumSize(280,100)
+    def abrir(self):
+        print("Ingresando a Barbuq")
 
-        boton = QPushButton("Que onda guapo")
-        self.setCentralWidget(boton)
+    def construir_menu(self):
+        menu = self.menuBar()
+        menuBebidas = menu.addMenu("&Bebidas")
+        menuBebidas.addAction("A&brir")
+        submenu = menuBebidas.addMenu("Sub&menu")
+        submenu.addAction("EscogerBebibas")
+        submenu.addAction("BebidasEstablecidas")
+        submenu.addSeparator()
 
-        #boton.clicked.connect(self.clickear)
-        #boton.pressed.connect(self.presionar)
-        #boton.released.connect(self.liberar)
-        boton.setCheckable(True)
-        boton.clicked.connect(self.boton_alternado)
-        self.boton = boton
+        actionMensaje = QAction("Men&saje", self)
+        actionMensaje.setIcon(QIcon(absPath("Bebida en proceso")))
+        actionMensaje.setShortcut("Ctrl-m")
+        actionMensaje.triggered.connect(self.mostrar_mensaje)
+        menuBebidas.addAction(actionMensaje)
+        menuBebidas.setStatusTip("Un comando informativo")
 
+        menuControl = menu.addMenu("Control")
 
-    def presionar(self):
-        print("Boton presionado")
-
-    def liberar(self):
-        print("Boton liberado")
-
-    def clickear(self):
-        print("Boton clickeado")
-
-
-    def boton_alternado(self, valor):
-        print(valor)
-        if valor:
-            self.boton.setText("Te veo")
-        else:
-            self.boton.setText("Apoco si tilin")
-
-
+    def mostrar_mensaje(self):
+        print("Bebida iniciada")
+        #QMessageBox.information(self, "Informacion", "texto informativo")
+        #QMessageBox.warning(self, "Informacion", "texto informativo")
+        #QMessageBox.critical(self, "Informacion", "texto informativo")
+        #QMessageBox.question(self, "Informacion", "texto informativo")
+        #QMessageBox.about(self, "Informacion", "texto informativo")
+     
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
