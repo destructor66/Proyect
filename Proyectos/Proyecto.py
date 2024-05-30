@@ -1,57 +1,441 @@
 
+from gpiozero import OutputDevice
+from time import sleep
 import sys
-from pathlib import Path
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QWidget, QStatusBar, QAction, QMessageBox, QLineEdit,  QPlainTextEdit, QFormLayout, QFileDialog, QFontDialog
-from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import QApplication, QWidget, QHBoxLayout, QPushButton, QMessageBox
+from PyQt5.QtGui import QPixmap, QIcon
+from PyQt5.QtCore import Qt, QSize
 
-def absPath(nombre):
-    return str( Path(__file__).parent.absolute()/ nombre)
+# Definir los pines GPIO de la Raspberry Pi
+ENA = OutputDevice(27)  # Habilitar/Deshabilitar el puente H
+IN1 = OutputDevice(17)  # Control de la bobina A del motor paso a paso
+IN2 = OutputDevice(18)  # Control de la bobina A del motor paso a paso
+IN3 = OutputDevice(22)  # Control de la bobina B del motor paso a paso
+IN4 = OutputDevice(23)  # Control de la bobina B del motor paso a paso
 
+#Definir los pines GPIO para el puente H
+IN5 = OutputDevice(6)
+IN6 = OutputDevice(12)
 
-class Ventana(QMainWindow):
-    def __init__(self) -> None:
+def mover_motor_adelante():
+    # Mover el motor hacia adelante
+    IN5.on()
+    IN6.off()
+
+def mover_motor_atras():
+    # Mover el motor hacia atrás
+    IN5.off()
+    IN6.on()
+
+def parar_motor():
+    # Parar el motor
+    IN5.off()
+    IN6.off()
+
+# Definir la secuencia de pasos del motor paso a paso (esta es una secuencia de 8 pasos)
+# Ajusta la secuencia según el tipo de motor paso a paso que estés utilizando
+secuencia_pasos_a = [
+    (1, 0, 0, 0),
+    (1, 1, 0, 0),
+    (0, 1, 0, 0),
+    (0, 1, 1, 0),
+    (0, 0, 1, 0),
+    (0, 0, 1, 1),
+    (0, 0, 0, 1),
+    (1, 0, 0, 1)
+]
+
+secuencia_pasos = [
+    (1, 0, 0, 1),
+    (0, 0, 0, 1),
+    (0, 0, 1, 1),
+    (0, 0, 1, 0),
+    (0, 1, 1, 0),
+    (0, 1, 0, 0),
+    (1, 1, 0, 0),
+    (1, 0, 0, 0)
+]
+
+# Función para configurar los pines del puente H según la secuencia de pasos
+def set_pins(secuencia):
+    IN1.value, IN2.value, IN3.value, IN4.value = secuencia
+
+# Función para girar el motor un número específico de pasos en una dirección
+def girar_motor(direccion, pasos_totales, velocidad=0.001):
+    # Activar el puente H
+    ENA.on()
+    
+    # Determinar la dirección del giro
+    if direccion == "adelante":
+        pasos = secuencia_pasos_a
+    elif direccion == "atras":
+        pasos = secuencia_pasos
+    else:
+        raise ValueError("Dirección desconocida. Use 'adelante' o 'atras'.")
+    
+    # Realizar los pasos necesarios
+    for _ in range(pasos_totales):
+        for paso in pasos:
+            set_pins(paso)
+            sleep(velocidad)
+    
+    # Desactivar el puente H
+    ENA.off()
+
+# Girar el motor 800 pasos hacia adelante
+def girar_800_pasos_adelante():
+    girar_motor("adelante", 800)
+    
+# Girar el motor 239 pasos hacia adelante
+def girar_239_pasos_adelante():
+    girar_motor("adelante", 239)
+
+# Girar el motor 120 pasos hacia adelante
+def girar_120_pasos_adelante():
+    girar_motor("adelante", 120)
+    
+# Girar el motor 121 pasos hacia adelante
+def girar_121_pasos_adelante():
+    girar_motor("adelante", 122)
+    
+# Girar el motor 122 pasos hacia adelante
+def girar_122_pasos_adelante():
+    girar_motor("adelante", 126)
+    
+# Girar el motor 275 pasos hacia adelante
+def girar_265_pasos_adelante():
+    girar_motor("adelante", 260)
+    
+# Girar el motor 877 pasos hacia atrás
+def girar_870_pasos_atras():
+    girar_motor("atras", 870)
+    
+    
+    
+# Girar el motor 800 pasos hacia atrás
+def girar_800_pasos_atras():
+    girar_motor("atras", 800)
+
+class Formulario(QWidget):
+    def __init__(self):
         super().__init__()
-        self.resize(600, 400)
-        
-        self.construir_menu()
-        
-        self.boton = QPushButton("Bienvenido a Barbuq")
-        self.setCentralWidget(self.boton)
-        self.boton.clicked.connect(self.abrir)
 
-    def abrir(self):
-        print("Ingresando a Barbuq")
+        self.setWindowTitle("Selecciona tu bebida")
+        self.setStyleSheet("background-color: black;")
+        self.resize(800, 480)  # Establecer el tamaño del formulario en 800x480
 
-    def construir_menu(self):
-        menu = self.menuBar()
-        menuBebidas = menu.addMenu("&Bebidas")
-        menuBebidas.addAction("A&brir")
-        submenu = menuBebidas.addMenu("Sub&menu")
-        submenu.addAction("EscogerBebibas")
-        submenu.addAction("BebidasEstablecidas")
-        submenu.addSeparator()
+        layout = QHBoxLayout()
 
-        actionMensaje = QAction("Men&saje", self)
-        actionMensaje.setIcon(QIcon(absPath("Bebida en proceso")))
-        actionMensaje.setShortcut("Ctrl-m")
-        actionMensaje.triggered.connect(self.mostrar_mensaje)
-        menuBebidas.addAction(actionMensaje)
-        menuBebidas.setStatusTip("Un comando informativo")
+        # Cargar el archivo de estilo QSS
+        with open('styles.qss', 'r') as f:
+            self.setStyleSheet(f.read())
 
-        menuControl = menu.addMenu("Control")
+        # Botón para la bebida Paloma
+        btn_paloma = QPushButton(self)
+        btn_paloma.setIconSize(QSize(200, 200))  # Tamaño del icono más grande
+        self.set_button_icon(btn_paloma, "palomaa.png")
+        btn_paloma.clicked.connect(self.preparar_paloma)
+        btn_paloma.setCursor(Qt.PointingHandCursor)
+        layout.addWidget(btn_paloma, alignment=Qt.AlignCenter)
 
-    def mostrar_mensaje(self):
-        print("Bebida iniciada")
-        #QMessageBox.information(self, "Informacion", "texto informativo")
-        #QMessageBox.warning(self, "Informacion", "texto informativo")
-        #QMessageBox.critical(self, "Informacion", "texto informativo")
-        #QMessageBox.question(self, "Informacion", "texto informativo")
-        #QMessageBox.about(self, "Informacion", "texto informativo")
-     
+        # Botón para la bebida Charro Negro
+        btn_charro_negro = QPushButton(self)
+        btn_charro_negro.setIconSize(QSize(200, 200))  # Tamaño del icono más grande
+        self.set_button_icon(btn_charro_negro, "charroo.png")
+        btn_charro_negro.clicked.connect(self.preparar_charro_negro)
+        btn_charro_negro.setCursor(Qt.PointingHandCursor)
+        layout.addWidget(btn_charro_negro, alignment=Qt.AlignCenter)
+
+        # Botón para la bebida Paris de Noche
+        btn_paris_noche = QPushButton(self)
+        btn_paris_noche.setIconSize(QSize(200, 200))  # Tamaño del icono más grande
+        self.set_button_icon(btn_paris_noche, "pariss.png")
+        btn_paris_noche.clicked.connect(self.preparar_paris_noche)
+        btn_paris_noche.setCursor(Qt.PointingHandCursor)
+        layout.addWidget(btn_paris_noche, alignment=Qt.AlignCenter)
+
+        self.setLayout(layout)
+
+    def set_button_icon(self, button, image_path):
+        pixmap = QPixmap(image_path)
+        pixmap = pixmap.scaledToWidth(150, Qt.SmoothTransformation)  # Ajustar el tamaño de la imagen
+        icon = QIcon(pixmap)
+        button.setIcon(icon)
+
+    def mostrar_mensaje(self, bebida):
+        msgBox = QMessageBox()
+        msgBox.setWindowTitle("Preparando bebida")
+        msgBox.setText(f"Preparando {bebida}...")
+        msgBox.setStyleSheet("QLabel{ color: white; }"
+                             "QMessageBox{ background-color: black; }")  # Cambiar el fondo a negro y el texto a blanco
+        msgBox.setFixedSize(200, 120)  # Establecer tamaño fijo
+        msgBox.exec_()
+
+        # Simulación de la preparación de la bebida
+        self.preparar_bebida(bebida)
+
+        msgBox2 = QMessageBox()
+        msgBox2.setWindowTitle("Bebida lista")
+        msgBox2.setText(f"{bebida} listo!")
+        msgBox2.setStyleSheet("QLabel{ color: white; }"
+                              "QMessageBox{ background-color: black; }")  # Cambiar el fondo a negro y el texto a blanco
+        msgBox2.setFixedSize(200, 120)  # Establecer tamaño fijo
+        msgBox2.exec_()
+
+    def preparar_bebida(self, bebida):
+        if bebida == "Paloma":
+            girar_239_pasos_adelante()
+            sleep(1)
+            # Mover el motor hacia adelante por 5 segundos
+            mover_motor_adelante()
+            sleep(0.1)
+            
+            # Parar el motor por 1 segundo
+            parar_motor()
+            sleep(5)
+            
+            # Mover el motor hacia atrás por 5 segundos
+            mover_motor_atras()
+            sleep(0.1)
+            
+            # Parar el motor por 1 segundo
+            parar_motor()
+            sleep(5)
+            
+            girar_120_pasos_adelante()
+            
+            girar_121_pasos_adelante()
+            
+            girar_122_pasos_adelante()
+            sleep(1)
+            # Mover el motor hacia adelante por 5 segundos
+            mover_motor_adelante()
+            sleep(0.1)
+            
+            # Parar el motor por 1 segundo
+            parar_motor()
+            sleep(5)
+            
+            # Mover el motor hacia atrás por 5 segundos
+            mover_motor_atras()
+            sleep(0.1)
+            
+            # Parar el motor por 1 segundo
+            parar_motor()
+            sleep(5)
+            # Mover el motor hacia adelante por 5 segundos
+            mover_motor_adelante()
+            sleep(0.1)
+            
+            # Parar el motor por 1 segundo
+            parar_motor()
+            sleep(5)
+            
+            # Mover el motor hacia atrás por 5 segundos
+            mover_motor_atras()
+            sleep(0.1)
+            
+            # Parar el motor por 1 segundo
+            parar_motor()
+            sleep(5)
+            # Mover el motor hacia adelante por 5 segundos
+            mover_motor_adelante()
+            sleep(0.1)
+            
+            # Parar el motor por 1 segundo
+            parar_motor()
+            sleep(5)
+            
+            # Mover el motor hacia atrás por 5 segundos
+            mover_motor_atras()
+            sleep(0.1)
+            
+            # Parar el motor por 1 segundo
+            parar_motor()
+            sleep(5)
+            
+            girar_265_pasos_adelante()
+            sleep(1)
+            girar_870_pasos_atras()
+            sleep(1)
+           
+            #girar_800_pasos_atras()
+			
+			
+			
+        elif bebida == "Charro Negro":
+            girar_239_pasos_adelante()
+            sleep(1)
+            # Mover el motor hacia adelante por 5 segundos
+            mover_motor_adelante()
+            sleep(0.1)
+            
+            # Parar el motor por 1 segundo
+            parar_motor()
+            sleep(5)
+            
+            # Mover el motor hacia atrás por 5 segundos
+            mover_motor_atras()
+            sleep(0.1)
+            
+            # Parar el motor por 1 segundo
+            parar_motor()
+            sleep(5)
+            girar_120_pasos_adelante()
+            
+            girar_121_pasos_adelante()
+            sleep(1)
+            # Mover el motor hacia adelante por 5 segundos
+            mover_motor_adelante()
+            sleep(0.1)
+            
+            # Parar el motor por 1 segundo
+            parar_motor()
+            sleep(5)
+            
+            # Mover el motor hacia atrás por 5 segundos
+            mover_motor_atras()
+            sleep(0.1)
+            
+            # Parar el motor por 1 segundo
+            parar_motor()
+            sleep(5)
+            # Mover el motor hacia adelante por 5 segundos
+            mover_motor_adelante()
+            sleep(0.1)
+            
+            # Parar el motor por 1 segundo
+            parar_motor()
+            sleep(5)
+            
+            # Mover el motor hacia atrás por 5 segundos
+            mover_motor_atras()
+            sleep(0.1)
+            
+            # Parar el motor por 1 segundo
+            parar_motor()
+            sleep(5)
+            # Mover el motor hacia adelante por 5 segundos
+            mover_motor_adelante()
+            sleep(0.1)
+            
+            # Parar el motor por 1 segundo
+            parar_motor()
+            sleep(5)
+            
+            # Mover el motor hacia atrás por 5 segundos
+            mover_motor_atras()
+            sleep(0.1)
+            
+            # Parar el motor por 1 segundo
+            parar_motor()
+            sleep(5)
+            girar_122_pasos_adelante()
+            
+            girar_265_pasos_adelante()
+            sleep(1)
+            girar_870_pasos_atras()
+            sleep(1)
+			
+        elif bebida == "Paris de Noche":
+            girar_239_pasos_adelante()
+            
+            girar_120_pasos_adelante()
+            sleep(1)
+            # Mover el motor hacia adelante por 5 segundos
+            mover_motor_adelante()
+            sleep(0.1)
+            
+            # Parar el motor por 1 segundo
+            parar_motor()
+            sleep(5)
+            
+            # Mover el motor hacia atrás por 5 segundos
+            mover_motor_atras()
+            sleep(0.1)
+            
+            # Parar el motor por 1 segundo
+            parar_motor()
+            sleep(5)
+            girar_121_pasos_adelante()
+            sleep(1)
+            # Mover el motor hacia adelante por 5 segundos
+            mover_motor_adelante()
+            sleep(0.1)
+            
+            # Parar el motor por 1 segundo
+            parar_motor()
+            sleep(5)
+            
+            # Mover el motor hacia atrás por 5 segundos
+            mover_motor_atras()
+            sleep(0.1)
+            
+            # Parar el motor por 1 segundo
+            parar_motor()
+            sleep(5)
+            # Mover el motor hacia adelante por 5 segundos
+            mover_motor_adelante()
+            sleep(0.1)
+            
+            # Parar el motor por 1 segundo
+            parar_motor()
+            sleep(5)
+            
+            # Mover el motor hacia atrás por 5 segundos
+            mover_motor_atras()
+            sleep(0.1)
+            
+            # Parar el motor por 1 segundo
+            parar_motor()
+            sleep(5)
+            # Mover el motor hacia adelante por 5 segundos
+            mover_motor_adelante()
+            sleep(0.1)
+            
+            # Parar el motor por 1 segundo
+            parar_motor()
+            sleep(5)
+            
+            # Mover el motor hacia atrás por 5 segundos
+            mover_motor_atras()
+            sleep(0.1)
+            
+            # Parar el motor por 1 segundo
+            parar_motor()
+            sleep(5)
+            girar_122_pasos_adelante()
+            
+            girar_265_pasos_adelante()
+            sleep(1)
+            girar_870_pasos_atras()
+            sleep(1)
+        else:
+            print(f"Bebida {bebida} desconocida")
+		
+
+    def preparar_paloma(self):
+        self.mostrar_mensaje("Paloma")
+
+    def preparar_charro_negro(self):
+        self.mostrar_mensaje("Charro Negro")
+
+    def preparar_paris_noche(self):
+        self.mostrar_mensaje("Paris de Noche")
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    window = Ventana()
-    window.show();
-    sys.exit(app.exec())
+    ventana = Formulario()
+    ventana.show()
+    sys.exit(app.exec_())
+
+# Limpiar los pines GPIO al finalizar
+ENA.close()
+IN1.close()
+IN2.close()
+IN3.close()
+IN4.close()
+
+parar_motor()
+IN5.close()
+IN6.close()
